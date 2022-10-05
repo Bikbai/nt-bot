@@ -5,9 +5,7 @@ services:
     image: abome40k/nt-bot
     hostname: nt-bot
     container_name: nt-bot
-    build:
-      context: .
-      dockerfile: ./dockerfile
     restart: on-failure
     command: python ./nt-bot/SRC/nt-bot.py
-
+    environment:
+      - BOT_TOKEN=MTAyMzAwNzQ4OTQ1ODk2NjdU0OA.GhftTn.CSfVxA2U2okoezYfnYTt0p5U3j58Nixa1c8SJs

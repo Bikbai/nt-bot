@@ -104,6 +104,7 @@ async def on_member_join(member):
     u.log_info("Member join event: {}".format(member.display_name))
     await gld.validate_member(member)
 
+u.log_info(f"Starting using token: {c.BOT_TOKEN}")
 bot.run(c.BOT_TOKEN)
 
 

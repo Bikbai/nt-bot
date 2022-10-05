@@ -68,7 +68,7 @@ class GGuild:
 
     def __init_time_roles(self):
         if os.path.exists("./data/timeroles.json"):
-            with open(".data/timeroles.json", "r") as file:
+            with open("./data/timeroles.json", "r") as file:
                 s = file.read()
                 if len(s) < 1:
                     return

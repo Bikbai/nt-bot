@@ -39,7 +39,7 @@ async def updateList():
     GOOD_LIST.clear()
     # заполняем наш массив списком с сайта
     urllib.request.urlretrieve(url, destination)
-    with open("../guild.txt", "r") as file:
+    with open("data/guild.txt", "r") as file:
         for line in file:
             line = line.strip()
             GOOD_LIST.append(line)
@@ -47,15 +47,15 @@ async def updateList():
 
 async def updateTimeRoleList():
     roleTimer.clear()
-    if os.path.exists("../timeroles.json"):
-        with open("../timeroles.json", "r") as file:
+    if os.path.exists("data/timeroles.json"):
+        with open("data/timeroles.json", "r") as file:
             for line in file:
                 line = line.split(' ')
                 roleTimer.append([bot.guilds[0].get_member(int(line[0])),int(line[1]), line[2]])
 
 
 async def timeRoleListToFile():
-    with open("../timeroles.json", "w") as file:
+    with open("data/timeroles.json", "w") as file:
         for timer in roleTimer:
             print(timer)
             file.write("{} {} {}".format(timer[0].id,timer[1],timer[2]))
