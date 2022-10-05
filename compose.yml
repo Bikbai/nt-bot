@@ -6,6 +6,4 @@ services:
     hostname: nt-bot
     container_name: nt-bot
     restart: on-failure
-    command: python ./nt-bot/SRC/nt-bot.py
-    environment:
-      - BOT_TOKEN=MTAyMzAwNzQ4OTQ1ODk2NjdU0OA.GhftTn.CSfVxA2U2okoezYfnYTt0p5U3j58Nixa1c8SJs
+    command: python ./SRC/nt-bot.py
