@@ -1,9 +1,9 @@
 import os
 
 
-RELEASE = os.environ.get('DEBUG')
+DEBUG = os.environ.get('DEBUG')
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
-if RELEASE is None:
+if DEBUG is None:
     if BOT_TOKEN is None:
         raise Exception("Не задан секретный токен бота")
 GUILD_LIST_URL = 'http://nordic-tribe.ru/guildlist.php'
