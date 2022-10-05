@@ -1,3 +1,4 @@
+import version
 import time
 
 import constant as c
