@@ -49,7 +49,7 @@ class GGuild:
         self.__guild_list.clear()
         u.log_info('Читаем список мемберов с сайта')
         urllib.request.urlretrieve(c.GUILD_LIST_URL, c.GL_FILENAME)
-        with open("../guild.txt", "r") as file:
+        with open("./data/guild.txt", "r") as file:
             for line in file:
                 line = line.strip()
                 self.__guild_list.update({line: 0})
@@ -62,13 +62,13 @@ class GGuild:
         self.__init_time_roles()
 
     def __save_timed_roles(self):
-        with open("../timeroles.json", "w") as file:
+        with open("./data/timeroles.json", "w") as file:
             tr_json = jsonpickle.encode(self.timed_roles, unpicklable=True)
             file.write(tr_json)
 
     def __init_time_roles(self):
-        if os.path.exists("../timeroles.json"):
-            with open("../timeroles.json", "r") as file:
+        if os.path.exists("./data/timeroles.json"):
+            with open(".data/timeroles.json", "r") as file:
                 s = file.read()
                 if len(s) < 1:
                     return
@@ -231,6 +231,3 @@ class GGuild:
                 for r in m.roles:
                     await self.validate_timed_role(m, r)
             u.log_info(f"Цикл проверки сервера {g.name} закончен, затрачено {(time.time_ns() - t)/1000000} мс")
-
-
-

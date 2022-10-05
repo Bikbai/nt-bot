@@ -9,6 +9,5 @@ services:
       context: .
       dockerfile: ./dockerfile
     restart: on-failure
-    command: python ./src/nt-bot.py
-    environment:
-      - BOT_TOKEN=MTAyMzAwNzQ4OTQ1ODk2NjU0OA.Gh5BYk.T4ZUsyqCDW0jlSHmH4Tlj91bGDMPoLZeDz1lSc
+    command: python ./nt-bot/SRC/nt-bot.py
+
