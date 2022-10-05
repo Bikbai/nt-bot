@@ -95,7 +95,11 @@ async def on_member_join(member):
     u.log_info("Member join event: {}".format(member.display_name))
     await gld.validate_member(member)
 
-bot.run(c.BOT_TOKEN)
+try:
+    bot.run(c.BOT_TOKEN)
+except Exception as e:
+    u.log_critical(str(e))
+
 
 
 
