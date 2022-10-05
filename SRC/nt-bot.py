@@ -9,10 +9,16 @@ from colorama import init
 import asyncio
 import guild as g
 
+
+import git
+repo = git.Repo(search_parent_directories=True)
+sha = repo.head.object.hexsha
+
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
+u.log_info(f"Running version {sha}")
 u.log_info(f"Starting using token: {c.BOT_TOKEN}")
 
 bot = commands.Bot(intents=intents, command_prefix="$")
