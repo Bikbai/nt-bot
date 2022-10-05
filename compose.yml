@@ -1,0 +1,12 @@
+version: '3.4'
+
+services:
+  bot:
+    image: abome40k/nt-bot
+    hostname: nt-bot
+    container_name: nt-bot
+    build:
+      context: .
+      dockerfile: ./dockerfile
+    restart: on-failure
+    command: python ./nt-bot.py
