@@ -12,6 +12,3 @@ PLAYER_ROLE = os.environ.get("PLAYER_ROLE", "Участник")
 UNCONFIRM_ROLE = os.environ.get("UNCONFIRM_ROLE",  "Неподтверждённые")
 CHILL_ROLE = os.environ.get("CHILL_ROLE", 'Бронь')
 BOT_ROLE = os.environ.get("BOT_ROLE", 'Bot')
-
-#длительность роли
-CHILL_ROLE_LENGTH = os.environ.get("CHILL_ROLE_LENGTH",  7*24*3600)

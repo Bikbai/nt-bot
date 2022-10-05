@@ -6,4 +6,4 @@ services:
     hostname: nt-bot
     container_name: nt-bot
     restart: on-failure
-    command: python ./SRC/nt-bot.py
+    command: python ../src/nt-bot.py
