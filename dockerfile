@@ -1,5 +1,5 @@
 FROM python:latest
 
+COPY req.txt .
 RUN pip install -r req.txt
-
-COPY *.py .
+RUN git clone https://github.com/Bikbai/nt-bot.git
