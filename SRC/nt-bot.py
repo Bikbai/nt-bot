@@ -13,6 +13,8 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
+u.log_info(f"Starting using token: {c.BOT_TOKEN}")
+
 bot = commands.Bot(intents=intents, command_prefix="$")
 
 init()
@@ -20,13 +22,6 @@ init()
 gld: g.GGuild
 tread_count = 0
 
-def check_rights(func):
-    def inner(*args, **kwargs):
-        func(*args, **kwargs)
-    return inner
-
-
-@check_rights
 @bot.command(pass_context=True)
 async def chill(ctx: commands.Context, subcommand: str, member: discord.Member, role: typing.Optional[discord.Role],
                 ed: typing.Optional[str]):
@@ -72,10 +67,6 @@ async def chill(ctx: commands.Context, subcommand: str, member: discord.Member, 
 @bot.command(pass_context=True)
 async def dm(ctx: commands.Context):
     await gld.check_guild()
-    #await gld.add_timed_role(ctx.author, ctx.author.roles[1], time.time())
-    #time.sleep(2)
-    #await gld.validate_timed_role(ctx.author, ctx.author.roles[1])
-
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -104,7 +95,6 @@ async def on_member_join(member):
     u.log_info("Member join event: {}".format(member.display_name))
     await gld.validate_member(member)
 
-u.log_info(f"Starting using token: {c.BOT_TOKEN}")
 bot.run(c.BOT_TOKEN)
 
 
