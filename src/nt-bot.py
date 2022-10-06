@@ -1,5 +1,6 @@
-import version
+from version import show_version
 import time
+from datetime import datetime
 
 import constant as c
 import typing
@@ -14,6 +15,7 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
+show_version()
 u.log_info(f"Starting using token: {c.BOT_TOKEN}")
 
 bot = commands.Bot(intents=intents, command_prefix="$")
@@ -30,7 +32,6 @@ async def chill(ctx: commands.Context, subcommand: str, member: discord.Member, 
     result = True
     err = 'OK'
     code = 0  # ok
-    u.log_info(f"chill: {member.id}, {role.id}. Guild: {member.guild.name}")
 
     if subcommand != 'v' and ed is None:
         result = False
@@ -90,7 +91,8 @@ async def on_ready():
     while True:
         u.log_info(f'Запуск потока проверки, thread: {tread_count}')
         await gld.check_guild()
-        await asyncio.sleep(3600)
+        u.log_info(f"Следующая проверка в: {datetime.fromtimestamp(time.time()+ c.SLEEP_DELAY)}")
+        await asyncio.sleep(c.SLEEP_DELAY)
 
 
 @bot.event

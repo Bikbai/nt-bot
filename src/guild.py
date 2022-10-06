@@ -47,7 +47,7 @@ class GGuild:
 
     def fill_guildlist(self):
         self.__guild_list.clear()
-        u.log_info('Читаем список мемберов с сайта')
+        u.log_info('Читаем список мемберов с сайта гильдии')
         urllib.request.urlretrieve(c.GUILD_LIST_URL, c.GL_FILENAME)
         with open("./data/guild.txt", "r") as file:
             for line in file:
