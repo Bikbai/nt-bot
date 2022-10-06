@@ -225,7 +225,7 @@ class GGuild:
             m: discord.Member
             for m in g.members:
                 if not get(m.roles, id=self.dc_roles.bot_role_id) is None:
-                    pass
+                    continue
                 u.log_info(f"Проверка мембера: {m.display_name}")
                 r: discord.Role
                 for r in m.roles:

@@ -70,6 +70,7 @@ async def chill(ctx: commands.Context, subcommand: str, member: discord.Member, 
 async def dm(ctx: commands.Context):
     await gld.check_guild()
 
+
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
