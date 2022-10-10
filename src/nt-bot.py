@@ -1,4 +1,5 @@
-from version import show_version
+from discord.utils import get
+#from version import show_version
 import time
 from datetime import datetime
 import inspect as i
@@ -16,7 +17,7 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
-show_version()
+#show_version()
 u.log_info(f"Starting using token: {c.BOT_TOKEN}")
 
 bot = commands.Bot(intents=intents, command_prefix="rp$")
@@ -28,10 +29,11 @@ tread_count = 0
 
 
 @bot.command(pass_context=True)
-async def dm(ctx: commands.Context):
-    for r in ctx.guild.roles:
-        await ctx.author.send(f'{r.name}')
-    return
+async def uclear(ctx: commands.Context):
+    for p in ctx.guild.members:
+        if gld.isUnconfirmed(p):
+            await p.remove_roles(get(p.guild.roles, id=gld.dc_roles['UNCONFIRM_ROLE'].id))
+
 
 
 @bot.command(pass_context=True)

@@ -171,15 +171,19 @@ class GGuild:
                 result = f"Пользователь {member.display_name} - бот, проверки не требуются"
                 u.log_info(result)
                 return result
+            if not self.isPlayer(member):
+                result = f"Пользователь {member.display_name} - не участник, проверки не требуются"
+                u.log_info(result)
+                return result
             # если роль "Участник" и корявый ник - выходим, ставим "Неподтверждённые"
-            if not m["valid"] and self.isPlayer(member):
+            if self.isPlayer(member) and not m["valid"]:
                 if writeMode:
                     await member.add_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
                 result = f"Формат имени пользователя {member.display_name} некорректный, выставлена роль Неподтверждённые!"
                 u.log_info(result)
                 return result
             # если нет в списке гильдии - выходим, ставим "Неподтверждённые"
-            if m["valid"] and m["ingameName"] not in self.__guild_list:
+            if self.isPlayer(member) and m["valid"] and m["ingameName"] not in self.__guild_list:
                 result = f"Пользователь {member.display_name} не найден в гильдии, выставлена роль Неподтверждённые"
                 if writeMode:
                     await member.add_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
