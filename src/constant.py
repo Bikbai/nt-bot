@@ -18,5 +18,5 @@ class RolesEnum(Enum):
     BOT_ROLE = 'Bot'
     REQRUITER_ROLE = 'Рекрутеры'
     NEWBIE_ROLE = 'Новичок'
-    TRIAL_ROLE = 'Таймаут вступления'
+    TRIAL_ROLE = 'Аудит'
     CHILL_ROLE = 'Чилл'
