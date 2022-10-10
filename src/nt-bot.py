@@ -30,6 +30,9 @@ tread_count = 0
 
 @bot.command(pass_context=True)
 async def uclear(ctx: commands.Context):
+    if not gld.check_rights(ctx.author):
+        await ctx.author.send(f'У вас нет доступа к этой команде')
+        return
     for p in ctx.guild.members:
         if gld.isUnconfirmed(p):
             await p.remove_roles(get(p.guild.roles, id=gld.dc_roles['UNCONFIRM_ROLE'].id))
