@@ -97,7 +97,7 @@ class TimeRoles:
 
 class GGuild:
     __guild_list = dict()
-    __bot: commands.Bot = commands.Bot
+    bot: commands.Bot = commands.Bot
     trStorage: TimeRoles
     dc_roles: dict[str, discord.Role] = dict()
     rights: dict[str, List[discord.Role]] = dict()
@@ -133,7 +133,7 @@ class GGuild:
             g: discord.Guild
             for cmd in rightList:
                 for roleName in rightList[cmd]:
-                    for g in self.__bot.guilds:
+                    for g in self.bot.guilds:
                         r: discord.Role
                         for r in g.roles:
                             if r.name == roleName:
@@ -144,7 +144,7 @@ class GGuild:
             return
 
     def __init__(self, bot):
-        self.__bot = bot
+        self.bot = bot
         self.trStorage = TimeRoles()
         self.fill_guildlist()
         self.__init_roles()
@@ -153,7 +153,7 @@ class GGuild:
     def __init_roles(self):
         for a in RolesEnum:
             dcGuild: discord.Guild
-            for dcGuild in self.__bot.guilds:
+            for dcGuild in self.bot.guilds:
                 role = discord.utils.get(dcGuild.roles, name=a.value)
                 if role is None:
                     err = f"Сервер: {dcGuild.name}, не найдена роль {a.value}"
@@ -293,7 +293,7 @@ class GGuild:
 
     async def check_guild(self):
         g: discord.Guild
-        for g in self.__bot.guilds:
+        for g in self.bot.guilds:
             t = time.time_ns()
             u.log_info(f"Старт цикла проверки сервера: {g.name}")
             m: discord.Member
@@ -301,6 +301,7 @@ class GGuild:
                 if self.isBot(m):
                     continue
                 u.log_info(f"Проверка мембера: {m.display_name}")
+                await self.validate_member(m, True)
                 await self.validate_timed_role(m)
             u.log_info(f"Цикл проверки сервера {g.name} закончен, затрачено {(time.time_ns() - t) / 1000000} мс")
 
@@ -337,6 +338,6 @@ class GGuild:
     async def dm(self,to: discord.Member, msg: str):
         if to is None:
             raise Exception("Метод dm: пустой параметр 'to'")
-        dm = await self.__bot.create_dm(to)
+        dm = await self.bot.create_dm(to)
         await dm.send(msg)
         return
