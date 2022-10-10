@@ -177,15 +177,19 @@ class GGuild:
                 u.log_info(result)
                 return result
             # если роль "Участник" и корявый ник - выходим, ставим "Неподтверждённые"
-            if self.isPlayer(member) and not m["valid"] and not self.isUnconfirmed(member):
+            if not m["valid"] and not self.isUnconfirmed(member):
                 if writeMode:
                     await member.add_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
                     await asyncio.sleep(1)
                 result = f"Формат имени пользователя {member.display_name} некорректный, выставлена роль Неподтверждённые!"
                 u.log_info(result)
                 return result
+            if self.isOfficier(member):
+                result = f"Пользователь {member.display_name} - *, пропускаем"
+                u.log_info(result)
+                return result
             # если нет в списке гильдии - выходим, ставим "Неподтверждённые"
-            if self.isPlayer(member) and m["valid"] and m["ingameName"] not in self.__guild_list and not self.isUnconfirmed(member):
+            if m["ingameName"] not in self.__guild_list:
                 result = f"Пользователь {member.display_name} не найден в гильдии, выставлена роль Неподтверждённые"
                 if writeMode:
                     await member.add_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
@@ -194,8 +198,10 @@ class GGuild:
                 return result
             if self.isUnconfirmed(member):
                 result = f"Пользователь {member.display_name} проверки прошёл успешно, очищаем роль Неподтверждённые"
-                await member.add_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
+                u.log_info(result)
+                await member.remove_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
                 await asyncio.sleep(1)
+                return result
             return f"{member.display_name}: все проверки проведены - ошибок нет"
         except Exception as e:
             return str(e)
