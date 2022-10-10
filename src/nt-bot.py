@@ -106,6 +106,7 @@ async def timerole(ctx: commands.Context, subcommand: str, member: discord.Membe
 # команда проверки персонажей, или всей гильды
 @bot.command(pass_context=True)
 async def check(ctx: commands.Context, mode: str = 'v', member: typing.Optional[discord.Member] = None):
+    gld.fill_guildlist()
     writeMode = False
     if mode == 'w':
         writeMode = True
