@@ -1,13 +1,30 @@
 import datetime
 import re
 from json import JSONEncoder
+import inspect as ins
 
 from colorama import init, Back, Fore, Style
 import discord.member
-from discord.utils import get
-from re import finditer
 
-import guild
+
+def get_stack() -> str:
+    m = ''
+    i = 0
+    stack = []
+    output = ''
+    while m != '<module>':
+        m = ins.stack()[i][3]
+        stack.append(m)
+        i += 1
+    for x in reversed(stack):
+        if x == 'get_stack':
+            continue
+        if output == '':
+            output = f"{x}"
+        else:
+            output = f"{output}: {x}"
+    print(output)
+    return output
 
 
 def log_info(string):

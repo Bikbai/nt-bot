@@ -35,6 +35,7 @@ ADMIN_ROLE = 844129239983718432
 PLAYER_ROLE = 932867826589523998
 UNCONFIRM_ROLE = 1008059672890191923
 
+
 async def updateList():
     GOOD_LIST.clear()
     # заполняем наш массив списком с сайта
@@ -47,18 +48,19 @@ async def updateList():
 
 async def updateTimeRoleList():
     roleTimer.clear()
-    if os.path.exists("data/timeroles.json"):
-        with open("data/timeroles.json", "r") as file:
+    if os.path.exists("../data/timeroles.json"):
+        with open("../data/timeroles.json", "r") as file:
             for line in file:
                 line = line.split(' ')
                 roleTimer.append([bot.guilds[0].get_member(int(line[0])),int(line[1]), line[2]])
 
 
 async def timeRoleListToFile():
-    with open("data/timeroles.json", "w") as file:
+    with open("../data/timeroles.json", "w") as file:
         for timer in roleTimer:
             print(timer)
             file.write("{} {} {}".format(timer[0].id,timer[1],timer[2]))
+
 
 async def checkMember(member, isCommand=False, ctx=None):
     print("Проверяю {} на сервере {}...".format(member.display_name, member.guild))
@@ -157,6 +159,7 @@ async def check(ctx, memberID):
 
 @bot.command()
 async def startCheck(ctx):
+    startCheck.__
     if get(ctx.guild.roles, id=ADMIN_ROLE) not in ctx.author.roles:
         await ctx.reply("Недостаточно полномочий.")
     else:

@@ -1,6 +1,7 @@
 from version import show_version
 import time
 from datetime import datetime
+import inspect as i
 
 import constant as c
 import typing
@@ -18,7 +19,7 @@ intents.message_content = True
 show_version()
 u.log_info(f"Starting using token: {c.BOT_TOKEN}")
 
-bot = commands.Bot(intents=intents, command_prefix="$")
+bot = commands.Bot(intents=intents, command_prefix="rp$")
 
 init()
 
@@ -27,26 +28,51 @@ tread_count = 0
 
 
 @bot.command(pass_context=True)
-async def chill(ctx: commands.Context, subcommand: str, member: discord.Member, role: typing.Optional[discord.Role],
+async def dm(ctx: commands.Context):
+    await gld.validate_timed_role(member=ctx.author)
+    return
+
+
+@bot.command(pass_context=True)
+async def newbie(ctx: commands.Context, member: discord.Member):
+    if not gld.check_rights(ctx.author):
+        await ctx.author.send(f'У вас нет доступа к этой команде')
+        return
+    if not gld.isPlayer(member):
+        await ctx.author.send(f"Указанный персонаж должен иметь роль 'Участник'")
+        return
+    if gld.isOfficier(member):
+        await ctx.author.send(f"Офицеру, серьезно?!")
+        return
+    endDate = time.time() + 30 * 24 * 3600
+    await gld.add_timed_role(member, gld.dc_roles["NEWBIE_ROLE"], endDate, gld.dc_roles["TRIAL_ROLE"])
+    await ctx.author.send(f'Мемберу {member.display_name} добавлена роль {gld.dc_roles["NEWBIE_ROLE"].name} сроком до {datetime.fromtimestamp(endDate)}')
+
+
+@bot.command(pass_context=True)
+async def timerole(ctx: commands.Context, subcommand: str, member: discord.Member, role: typing.Optional[discord.Role],
                 ed: typing.Optional[str]):
+    if not gld.check_rights(ctx.author):
+        await ctx.author.send(f'У вас нет доступа к этой команде')
+        return
     result = True
     err = 'OK'
     code = 0  # ok
-
+    print(i.stack()[0][3])
     if subcommand != 'v' and ed is None:
         result = False
-        err = 'Некорректный формат команды. $chill a|r|v @member @role DD.MM.YY'
+        err = 'Некорректный формат команды. rp$timerole a|r|v @member @role DD.MM.YY'
     elif subcommand != 'v':
         if role is None:
-            await ctx.author.send(f'Команда chill {subcommand} {member.display_name}: ОШИБКА. не указана роль')
+            await ctx.author.send(f'Команда rp$timerole {subcommand} {member.display_name}: ОШИБКА. не указана роль')
             return
         r = u.parce_datestr(ed)
         if r.get(0) is None:
-            await ctx.author.send(f'Команда chill {subcommand} {member.display_name} {role.name} {ed}: '
+            await ctx.author.send(f'Команда rp$timerole {subcommand} {member.display_name} {role.name} {ed}: '
                                   f'ОШИБКА: {r.get(1)}')
             return
         if r.get(0) < time.time():
-            await ctx.author.send(f'Команда chill {subcommand} {member.display_name} {role.name}: '
+            await ctx.author.send(f'Команда rp$timerole {subcommand} {member.display_name} {role.name}: '
                                   f'ОШИБКА. Указана дата в прошлом')
             return
     if result:
@@ -56,7 +82,7 @@ async def chill(ctx: commands.Context, subcommand: str, member: discord.Member, 
             case 'r':
                 code, err = await gld.remove_timed_role(member, role, r.get(0))
             case 'v':
-                code, err = await gld.validate_timed_role(member, role)
+                code, err = await gld.validate_timed_role(member=member, role=None, author=ctx.author)
             case _:
                 code = False
                 err = 'Некорректный формат команды. $chill a|r|v @member @role DD.MM.YY'
@@ -65,11 +91,7 @@ async def chill(ctx: commands.Context, subcommand: str, member: discord.Member, 
         return
     else:
         await ctx.author.send(f'{member.display_name}: ОШИБКА. {err}')
-
-
-@bot.command(pass_context=True)
-async def dm(ctx: commands.Context):
-    await gld.check_guild()
+    return
 
 
 @bot.event
@@ -77,7 +99,8 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
         u.log_info(error)
         await ctx.author.send(f'ОШИБКА. Не указан параметр "{error.param.name}"')
-    await ctx.author.send(f'Произошла ошибка {error}')
+    await ctx.author.send(f'Произошла ошибка: {error}')
+    return
 
 
 @bot.event
@@ -104,7 +127,4 @@ try:
     bot.run(c.BOT_TOKEN)
 except Exception as e:
     u.log_critical(str(e))
-
-
-
 

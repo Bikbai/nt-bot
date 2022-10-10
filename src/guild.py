@@ -1,11 +1,12 @@
+import uuid
+from enum import Enum
 import datetime
-from typing import Optional
+from typing import Optional, List
 
 import jsonpickle
 import os
 import time
-import json
-from array import array
+import inspect as i
 
 import discord.types.member
 from attr import dataclass
@@ -16,6 +17,7 @@ from discord.utils import get
 from discord.ext import commands
 import urllib.request
 import utility as u
+from constant import RolesEnum
 
 
 class GuildMember:
@@ -23,27 +25,96 @@ class GuildMember:
     dcUserName = ""
 
 
-@dataclass
 class TimeRole:
+    uid: uuid.uuid4()
     userId: int
     roleId: int
     endDate: float
     userName: Optional[str]
+    nextRoleId: Optional[int]
+
+    def __init__(self, ur, rl, ed, un=None, nr=None):
+        self.uid = uuid.uuid4()
+        self.userId = ur
+        self.roleId = rl
+        self.endDate = ed
+        self.userName = un
+        self.nextRoleId = nr
 
 
-class Roles:
-    admin_role_id = 0
-    player_role_id = 0
-    unconfirmed_role_id = 0
-    chill_role_id = 0
-    bot_role_id = 0
+class TimeRoles:
+    timed_roles: dict[str, TimeRole] = dict()
 
+    def __init__(self):
+        if os.path.exists(c.TR_FILENAME):
+            with open(c.TR_FILENAME, "r") as file:
+                s = file.read()
+                if len(s) < 1:
+                    return
+                self.timed_roles = jsonpickle.decode(s)
+
+    def find_1(self, owner: discord.Member, trId: int):
+        for val in self.timed_roles.values():
+            if val.userId == owner.id and val.roleId == trId:
+                return val
+        return None
+
+    def find_2(self, owner: discord.Member, role: discord.Role):
+        return self.find_1(owner, role.id)
+
+    def save(self):
+        with open(c.TR_FILENAME, "w") as file:
+            jsonpickle.set_preferred_backend('json')
+            jsonpickle.set_encoder_options('json', ensure_ascii=False)
+            tr_json = jsonpickle.encode(self.timed_roles, unpicklable=True, indent=4)
+            file.write(tr_json)
+
+    def isTimedRole(self, owner: discord.Member, role: discord.Role) -> bool:
+        iTr = self.testTR(TimeRole(owner.id, role.id, 0, owner.display_name, None), False)
+        if iTr is None:
+            return True
+        return False
+
+    def testTR(self, tr: TimeRole, modify: bool) -> Optional[TimeRole]:
+        for key, val in self.timed_roles.items():
+            if val.uid == tr.userId and val.roleId == tr.roleId:
+                # нашлося
+                if modify:
+                    self.timed_roles[str(val.uid)].endDate = tr.endDate
+                return val
+        if modify:
+            # не нашлося
+            self.timed_roles[str(tr.uid)] = tr
+            self.save()
+        return None
+
+    def removeByTimeRole(self, tr: TimeRole):
+        try:
+            self.timed_roles.pop(str(tr.uid))
+        except Exception as e:
+            u.log_critical(f"removeByTimeRole: {e}")
+        self.save()
 
 class GGuild:
     __guild_list = dict()
-    __bot = commands.Bot
-    dc_roles = Roles()
-    timed_roles: [TimeRole] = []
+    __bot: commands.Bot = commands.Bot
+    trStorage: TimeRoles
+    dc_roles: dict[str, discord.Role] = dict()
+    rights: dict[str, List[discord.Role]] = dict()
+
+    def check_rights(self, member: discord.Member) -> bool:
+        command = i.stack()[1][3]
+        if command is None:
+            u.log_critical(f"Ошибка, проверка полномочий пустой команды, вызов из {u.get_stack()}")
+            return False
+        roles = self.rights.get(command)
+        # для команды не назначены права
+        if roles is None:
+            return False
+        # пересечение ролей и полномочий пустое
+        if len(list(set(roles) & set(member.roles))) == 0:
+            return False
+        return True
 
     def fill_guildlist(self):
         self.__guild_list.clear()
@@ -55,62 +126,40 @@ class GGuild:
                 self.__guild_list.update({line: 0})
         u.log_info("Количество членов гильдии: {}".format(len(self.__guild_list)))
 
+    def __init_rights__(self):
+        with open("./" + c.RIGHTS_FILENAME, "r") as file:
+            s = file.read()
+            rightList = jsonpickle.decode(s)
+            g: discord.Guild
+            for cmd in rightList:
+                for roleName in rightList[cmd]:
+                    for g in self.__bot.guilds:
+                        r: discord.Role
+                        for r in g.roles:
+                            if r.name == roleName:
+                                if self.rights.get(cmd) is None:
+                                    self.rights.update({cmd: list({r})})
+                                else:
+                                    self.rights[str(cmd)].append(r)
+            return
+
     def __init__(self, bot):
         self.__bot = bot
+        self.trStorage = TimeRoles()
         self.fill_guildlist()
         self.__init_roles()
-        self.__init_time_roles()
-
-    def __save_timed_roles(self):
-        with open("./data/timeroles.json", "w") as file:
-            tr_json = jsonpickle.encode(self.timed_roles, unpicklable=True)
-            file.write(tr_json)
-
-    def __init_time_roles(self):
-        if os.path.exists("./data/timeroles.json"):
-            with open("./data/timeroles.json", "r") as file:
-                s = file.read()
-                if len(s) < 1:
-                    return
-                self.timed_roles = jsonpickle.decode(s)
+        self.__init_rights__()
 
     def __init_roles(self):
-        role_init = 0b00000
-        for dcGuild in self.__bot.guilds:
-            for r in dcGuild.roles:
-                match r.name:
-                    case c.ADMIN_ROLE:
-                        self.dc_roles.admin_role_id = r.id
-                        role_init = role_init | 0b00001
-                    case c.PLAYER_ROLE:
-                        self.dc_roles.player_role_id = r.id
-                        role_init = role_init | 0b00010
-                    case c.UNCONFIRM_ROLE:
-                        self.dc_roles.unconfirmed_role_id = r.id
-                        role_init = role_init | 0b00100
-                    case c.CHILL_ROLE:
-                        self.dc_roles.chill_role_id = r.id
-                        role_init = role_init | 0b01000
-                    case c.BOT_ROLE:
-                        self.dc_roles.bot_role_id = r.id
-                        role_init = role_init | 0b10000
-        #   читаем и заполняем нужные роли
-        if role_init < 1:
-            u.log_critical("Не найдены роли по их именам, проверьте файл constant.py")
-            return False
-        if role_init < 3:
-            u.log_critical("Не найдена роль ADMIN_ROLE, проверьте файл constant.py")
-            return False
-        if role_init < 7:
-            u.log_critical("Не найдена роль UNCONFIRM_ROLE, проверьте файл constant.py")
-            return False
-        if role_init < 15:
-            u.log_critical("Не найдена роль CHILL_ROLE, проверьте файл constant.py")
-            return False
-        if role_init < 31:
-            u.log_critical("Не найдена роль BOT_ROLE, проверьте файл constant.py")
-            return False
-        u.log_info("Role init completed")
+        for a in RolesEnum:
+            dcGuild: discord.Guild
+            for dcGuild in self.__bot.guilds:
+                role = discord.utils.get(dcGuild.roles, name=a.value)
+                if role is None:
+                    err = f"Сервер: {dcGuild.name}, не найдена роль {a.value}"
+                    u.log_critical(err)
+                    raise Exception(err)
+                self.dc_roles[str(a.name)] = role
         return True
 
     async def validate_member(self, member: discord.Member):
@@ -118,90 +167,115 @@ class GGuild:
         m = u.parse_name(member.display_name)
         # если бот - сразу выходим
         try:
-            if not get(member.roles, id=self.dc_roles.bot_role_id) is None:
+            if self.isBot(member):
                 result = f"Пользователь {member.display_name} - бот, проверки не требуются"
                 u.log_info(result)
                 return result
             # если роль "Участник" и корявый ник - выходим, ставим "Неподтверждённые"
-            if not m["valid"] and not get(member.roles, id=self.dc_roles.player_role_id) is None:
-                await member.add_roles(get(member.guild.roles, id=self.dc_roles.unconfirmed_role_id))
-                result = f"Формат имени пользователя {member.display_name} некорректный, ошибка проверки!!"
+            if not m["valid"] and self.isPlayer(member):
+                await member.add_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
+                result = f"Формат имени пользователя {member.display_name} некорректный, выставлена роль Неподтверждённые!"
                 u.log_info(result)
                 return result
-            # если нет в списке гильдии - лишаем всех ролей, выходим
+            # если нет в списке гильдии - выходим, ставим "Неподтверждённые"
             if m["valid"] and m["ingameName"] not in self.__guild_list:
                 await u.clear_roles(member)
-                await member.add_roles(get(member.guild.roles, id=self.dc_roles.unconfirmed_role_id))
-                result = f"Пользователь {member.display_name} лишен роли Участник, ибо отсутствует в списке гильдии"
+                result = f"Пользователь {member.display_name} не найден в гильдии, выставлена роль Неподтверждённые"
                 u.log_info(result)
-                dm = await self.__bot.create_dm(member)
-                await dm.send('Вас нет в списке гильдии, все имеющиеся роли очищены!')
                 return result
             # проверяем наличие роли "Участник", автоматически всем выставляем неподтвержденные, выходим
-            if get(member.roles, id=self.dc_roles.player_role_id) is None:
-                await member.add_roles(get(member.guild.roles, id=self.dc_roles.unconfirmed_role_id))
+            if not self.isPlayer(member):
+                await member.add_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
                 result = f"Пользователь {member.display_name} не имеет роли Участник, присвоена роль Неподтверждённые"
                 u.log_info(result)
                 return result
             # проверяем наличие в гильде, ставим роль "Участник", если оной нет
-            if m["valid"] and m["ingameName"] in self.__guild_list \
-                    and get(member.roles, id=self.dc_roles.player_role_id) is None:
-                await member.add_roles(get(member.guild.roles, id=self.dc_roles.player_role_id))
-                await member.remove_roles(get(member.guild.roles, id=self.dc_roles.unconfirmed_role_id))
-                result = f"Пользователь {member.display_name} не имел роли Участник, исправлено"
+            if m["valid"] and m["ingameName"] in self.__guild_list and not self.isPlayer(member):
+                await member.add_roles(get(member.guild.roles, id=self.dc_roles['PLAYER_ROLE'].id))
+                await member.remove_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
+                result = f"Пользователь {member.display_name} найден в гильдии, но не имел роли Участник, исправлено"
                 u.log_info(result)
                 return result
             return "Все проверки проведены - ошибок нет"
         except Exception as e:
             return str(e)
 
-    def testTR(self, tr: TimeRole, modify: bool) -> int:
-        for i, x in enumerate(self.timed_roles):
-            if x.userId == tr.userId and x.roleId == tr.roleId:
-                if modify:
-                    x.endDate = tr.endDate
-                return i
-        if modify:
-            self.timed_roles.append(tr)
-        return -1
-
-    async def add_timed_role(self, member: discord.Member, role: discord.Role, ed: float):
+    async def add_timed_role(self, member: discord.Member, role: discord.Role, ed: float,
+                             nextRole: Optional[discord.Role]):
         try:
-            tr = TimeRole(member.id, role.id, ed, member.display_name)
-            if self.testTR(tr, True) == -1:
+            if nextRole is None:
+                nextRoleId = None
+            else:
+                nextRoleId = nextRole.id
+            tr = TimeRole(member.id, role.id, ed, member.display_name, nextRoleId)
+            if self.trStorage.testTR(tr, True) == -1:
                 u.log_info(f"Временная роль добавлена пользователю {member.display_name}")
                 code = 0
                 msg = "Роль добавлена"
             else:
                 code = 1
                 msg = "Роль продлена"
-            await member.add_roles(get(member.guild.roles, id=self.dc_roles.chill_role_id))
-            self.__save_timed_roles()
+            await member.add_roles(get(member.guild.roles, id=role.id))
             return code, msg
         except Exception as e:
             return -1, str(e)
 
-    async def validate_timed_role(self, member: discord.Member, role: discord.Role):
-        if not get(member.roles, id=self.dc_roles.bot_role_id) is None:
-            u.log_info(f"Пользователь {member.display_name} бот, пропускаем")
-            return True, "ALL OK"
-        iTr = self.testTR(TimeRole(member.id, role.id, 0, member.display_name), False)
-        # роль не является временной
-        if iTr == -1:
-            err = f"Не найдена временная роль {role.name} у пользователя {member.display_name}"
-            return False, err
-        # является, но нет у персонажа
-        r = get(member.roles, id=role.id)
-        if r is None:
-            err = f"{role.name} отсутствует у пользователя {member.display_name}!"
-            return False, err
+    async def __validate_timed_role__(self,
+                                      member: discord.Member,
+                                      role: discord.Role,
+                                      author: Optional[discord.Member] = None):
+        interactive: bool = False
+        dm: discord.client.DMChannel
+        if author:
+            interactive = True
+        if role is None:
+            msg = f"__validate_timed_role__: Ошибка! Передана пустая роль туда, куда не следует!!!"
+            u.log_critical(msg)
+            if interactive: await self.dm(author, msg)
+            return
+        iTr = self.trStorage.find_2(member, role)
+        if iTr is None:
+            return
         # всё есть, проверяем - жива или нет. Если просрочена - очищаем
-        u.log_info(f"Пользователь {member.display_name}, найдена временная роль {r.name}, срок до {datetime.datetime.fromtimestamp(self.timed_roles[iTr].endDate)}")
-        if self.timed_roles[iTr].endDate < time.time():
+        msg = f"Мембер {member.display_name}, найдена временная роль {role.name}, срок до {datetime.datetime.fromtimestamp(iTr.endDate)}"
+        u.log_info(msg)
+        if interactive: await self.dm(author, msg)
+        if iTr.endDate < time.time():
             await member.remove_roles(get(member.guild.roles, id=role.id))
-            self.timed_roles.pop(iTr)
-            self.__save_timed_roles()
-            u.log_info(f"Временная роль очищена у пользователя {member.display_name}")
+            self.trStorage.removeByTimeRole(iTr)
+            # если выставлена подменяющая роль - выставляем
+            if iTr.nextRoleId is None:
+                pass
+            else:
+                await member.add_roles(get(member.guild.roles, id=iTr.nextRoleId))
+                u.log_info(f"Добавлена роль {get(member.guild.roles, id=iTr.nextRoleId).name}")
+            msg = f"Временная роль очищена у пользователя {member.display_name}"
+            u.log_info(msg)
+            if interactive: await self.dm(author, msg)
+        return
+
+    async def validate_timed_role(self,
+                                  member: discord.Member,
+                                  role: Optional[discord.Role] = None,
+                                  author: Optional[discord.Member] = None):
+        interactive: bool = False
+        if author:
+            interactive = True
+        if self.isBot(member):
+            msg = f"Пользователь {member.display_name} бот, пропускаем"
+            u.log_info(msg)
+            if interactive: await self.dm(author, msg)
+            return True, "ALL OK"
+        if role is None:
+            # проверяем все роли персонажа
+            if interactive: await self.dm(author, "Роль не указана, проверяем все доступные роли мембера")
+            for r in member.roles:
+                await self.__validate_timed_role__(member, r, author)
+        else:
+            if not self.trStorage.isTimedRole(member, role) and interactive:
+                await self.dm(author, "Указанная роль не является временной.")
+                return False, "ALL OK"
+            await self.__validate_timed_role__(member, role, author)
         return True, "ALL OK"
 
     async def remove_timed_role(self, member: discord.Member, role: discord.Role):
@@ -210,10 +284,9 @@ class GGuild:
         if not result:
             return True, err
         # чистим
-        iTr = self.testTR(TimeRole(member.id, role.id, 0, member.display_name), False)
+        iTr = self.trStorage.testTR(TimeRole(member.id, role.id, 0, member.display_name), False)
         await member.remove_roles(get(member.guild.roles, id=role.id))
-        self.timed_roles.pop(iTr)
-        self.__save_timed_roles()
+        self.trStorage.removeByTimeRole(iTr)
         u.log_info(f"Временная роль очищена у пользователя {member.display_name}")
         return True, err
 
@@ -224,10 +297,41 @@ class GGuild:
             u.log_info(f"Старт цикла проверки сервера: {g.name}")
             m: discord.Member
             for m in g.members:
-                if not get(m.roles, id=self.dc_roles.bot_role_id) is None:
+                if self.isBot(m):
                     continue
                 u.log_info(f"Проверка мембера: {m.display_name}")
-                r: discord.Role
-                for r in m.roles:
-                    await self.validate_timed_role(m, r)
-            u.log_info(f"Цикл проверки сервера {g.name} закончен, затрачено {(time.time_ns() - t)/1000000} мс")
+                await self.validate_timed_role(m)
+            u.log_info(f"Цикл проверки сервера {g.name} закончен, затрачено {(time.time_ns() - t) / 1000000} мс")
+
+    def isOfficier(self, member: discord.Member) -> bool:
+        pname = u.parse_name(member.display_name)
+        if pname['valid'] and pname['officier'] == '*' and self.isPlayer(member):
+            return True
+        return False
+
+    def isAdmin(self, member: discord.Member):
+        if get(member.roles, id=self.dc_roles['PLAYER_ROLE'].id) is None:
+            return False
+        return True
+
+    def isBot(self, member: discord.Member):
+        if get(member.roles, id=self.dc_roles['BOT_ROLE'].id) is None:
+            return False
+        return True
+
+    def isReqruiter(self, member: discord.Member):
+        if get(member.roles, id=self.dc_roles['REQRUITER_ROLE'].id) is None:
+            return False
+        return True
+
+    def isPlayer(self, member: discord.Member):
+        if get(member.roles, id=self.dc_roles["PLAYER_ROLE"].id) is None:
+            return False
+        return True
+
+    async def dm(self,to: discord.Member, msg: str):
+        if to is None:
+            raise Exception("Метод dm: пустой параметр 'to'")
+        dm = await self.__bot.create_dm(to)
+        await dm.send(msg)
+        return
