@@ -29,7 +29,8 @@ tread_count = 0
 
 @bot.command(pass_context=True)
 async def dm(ctx: commands.Context):
-    await gld.validate_timed_role(member=ctx.author)
+    for r in ctx.guild.roles:
+        await ctx.author.send(f'{r.name}')
     return
 
 
@@ -46,12 +47,13 @@ async def newbie(ctx: commands.Context, member: discord.Member):
         return
     endDate = time.time() + 30 * 24 * 3600
     await gld.add_timed_role(member, gld.dc_roles["NEWBIE_ROLE"], endDate, gld.dc_roles["TRIAL_ROLE"])
-    await ctx.author.send(f'Мемберу {member.display_name} добавлена роль {gld.dc_roles["NEWBIE_ROLE"].name} сроком до {datetime.fromtimestamp(endDate)}')
+    await ctx.author.send(
+        f'Мемберу {member.display_name} добавлена роль {gld.dc_roles["NEWBIE_ROLE"].name} сроком до {datetime.fromtimestamp(endDate)}')
 
 
 @bot.command(pass_context=True)
 async def timerole(ctx: commands.Context, subcommand: str, member: discord.Member, role: typing.Optional[discord.Role],
-                ed: typing.Optional[str]):
+                   ed: typing.Optional[str]):
     if not gld.check_rights(ctx.author):
         await ctx.author.send(f'У вас нет доступа к этой команде')
         return
@@ -94,6 +96,37 @@ async def timerole(ctx: commands.Context, subcommand: str, member: discord.Membe
     return
 
 
+# команда проверки персонажей, или всей гильды
+@bot.command(pass_context=True)
+async def check(ctx: commands.Context, mode: str = 'v', member: typing.Optional[discord.Member] = None):
+    writeMode = False
+    if mode == 'w':
+        writeMode = True
+    if not gld.check_rights(ctx.author):
+        await ctx.author.send(f'У вас нет доступа к этой команде')
+        return
+    if member is None:
+        if writeMode:
+            await ctx.author.send(f'Запущена проверка по всем членам гильдии в режиме исправления')
+        else:
+            await ctx.author.send(f'Запущена проверка по всем членам гильдии в режиме проверки')
+        for m in ctx.guild.members:
+            r = None
+            r = await gld.validate_member(m, writeMode)
+            if not r is None:
+                pass
+#                await ctx.author.send(r)
+    else:
+        if writeMode:
+            await ctx.author.send(f'Проверяем и исправляем мембера: {member.display_name}')
+        else:
+            await ctx.author.send(f'Проверяем мембера: {member.display_name}')
+        r = None
+        r = await gld.validate_member(member, writeMode)
+        if not r is None:
+            await ctx.author.send(r)
+
+
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
@@ -114,7 +147,7 @@ async def on_ready():
     while True:
         u.log_info(f'Запуск потока проверки, thread: {tread_count}')
         await gld.check_guild()
-        u.log_info(f"Следующая проверка в: {datetime.fromtimestamp(time.time()+ c.SLEEP_DELAY)}")
+        u.log_info(f"Следующая проверка в: {datetime.fromtimestamp(time.time() + c.SLEEP_DELAY)}")
         await asyncio.sleep(c.SLEEP_DELAY)
 
 
@@ -123,8 +156,8 @@ async def on_member_join(member):
     u.log_info("Member join event: {}".format(member.display_name))
     await gld.validate_member(member)
 
+
 try:
     bot.run(c.BOT_TOKEN)
 except Exception as e:
     u.log_critical(str(e))
-

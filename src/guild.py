@@ -122,7 +122,7 @@ class GGuild:
         urllib.request.urlretrieve(c.GUILD_LIST_URL, c.GL_FILENAME)
         with open("./data/guild.txt", "r") as file:
             for line in file:
-                line = line.strip()
+                line = line.strip().lower()
                 self.__guild_list.update({line: 0})
         u.log_info("Количество членов гильдии: {}".format(len(self.__guild_list)))
 
@@ -162,7 +162,7 @@ class GGuild:
                 self.dc_roles[str(a.name)] = role
         return True
 
-    async def validate_member(self, member: discord.Member):
+    async def validate_member(self, member: discord.Member, writeMode : bool = False):
         # разбираем ник дискорда
         m = u.parse_name(member.display_name)
         # если бот - сразу выходим
@@ -173,30 +173,27 @@ class GGuild:
                 return result
             # если роль "Участник" и корявый ник - выходим, ставим "Неподтверждённые"
             if not m["valid"] and self.isPlayer(member):
-                await member.add_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
+                if writeMode:
+                    await member.add_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
                 result = f"Формат имени пользователя {member.display_name} некорректный, выставлена роль Неподтверждённые!"
                 u.log_info(result)
                 return result
             # если нет в списке гильдии - выходим, ставим "Неподтверждённые"
             if m["valid"] and m["ingameName"] not in self.__guild_list:
-                await u.clear_roles(member)
                 result = f"Пользователь {member.display_name} не найден в гильдии, выставлена роль Неподтверждённые"
-                u.log_info(result)
-                return result
-            # проверяем наличие роли "Участник", автоматически всем выставляем неподтвержденные, выходим
-            if not self.isPlayer(member):
-                await member.add_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
-                result = f"Пользователь {member.display_name} не имеет роли Участник, присвоена роль Неподтверждённые"
+                if writeMode:
+                    await member.add_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
                 u.log_info(result)
                 return result
             # проверяем наличие в гильде, ставим роль "Участник", если оной нет
             if m["valid"] and m["ingameName"] in self.__guild_list and not self.isPlayer(member):
-                await member.add_roles(get(member.guild.roles, id=self.dc_roles['PLAYER_ROLE'].id))
-                await member.remove_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
+                if writeMode:
+                    await member.add_roles(get(member.guild.roles, id=self.dc_roles['PLAYER_ROLE'].id))
+                    await member.remove_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
                 result = f"Пользователь {member.display_name} найден в гильдии, но не имел роли Участник, исправлено"
                 u.log_info(result)
                 return result
-            return "Все проверки проведены - ошибок нет"
+            return f"{member.display_name}: все проверки проведены - ошибок нет"
         except Exception as e:
             return str(e)
 
@@ -326,6 +323,10 @@ class GGuild:
 
     def isPlayer(self, member: discord.Member):
         if get(member.roles, id=self.dc_roles["PLAYER_ROLE"].id) is None:
+            return False
+        return True
+    def isUnconfirmed(self, member: discord.Member):
+        if get(member.roles, id=self.dc_roles["UNCONFIRM_ROLE"].id) is None:
             return False
         return True
 

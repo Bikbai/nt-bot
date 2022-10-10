@@ -42,9 +42,9 @@ def log_critical(string):
                          datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"), string))
 
 
-def parse_name(memberName):
+def parse_name(memberName: str):
     regex = r"^(?P<officier>\*?) *\[(?P<ticker>\S*)\] (?P<ingameName>\w*)\W*(?:\((?P<callname>.*)\))?$"
-    matches = re.finditer(regex, memberName, re.MULTILINE)
+    matches = re.finditer(regex, memberName.lower(), re.MULTILINE)
     for matchNum, match in enumerate(matches, start=1):
         x = match.groupdict()
         x["valid"] = True
