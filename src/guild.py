@@ -189,14 +189,6 @@ class GGuild:
                     await member.add_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
                 u.log_info(result)
                 return result
-            # проверяем наличие в гильде, ставим роль "Участник", если оной нет
-            if m["valid"] and m["ingameName"] in self.__guild_list and not self.isPlayer(member):
-                if writeMode:
-                    await member.add_roles(get(member.guild.roles, id=self.dc_roles['PLAYER_ROLE'].id))
-                    await member.remove_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
-                result = f"Пользователь {member.display_name} найден в гильдии, но не имел роли Участник, исправлено"
-                u.log_info(result)
-                return result
             return f"{member.display_name}: все проверки проведены - ошибок нет"
         except Exception as e:
             return str(e)
