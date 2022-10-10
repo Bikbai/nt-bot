@@ -33,7 +33,7 @@ def log_info(string):
 
 
 def log_warning(string):
-    print(Fore.BLUE + "[{}] [WARNING ] {}".format(
+    print(Fore.RED + "[{}] [WARNING ] {}".format(
                          datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"), string))
 
 

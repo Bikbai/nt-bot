@@ -182,7 +182,7 @@ class GGuild:
                     await member.add_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
                     await asyncio.sleep(1)
                 result = f"Формат имени пользователя {member.display_name} некорректный, выставлена роль Неподтверждённые!"
-                u.log_info(result)
+                u.log_warning(result)
                 return result
             if self.isOfficier(member):
                 result = f"Пользователь {member.display_name} - *, пропускаем"
@@ -194,11 +194,11 @@ class GGuild:
                 if writeMode:
                     await member.add_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
                     await asyncio.sleep(1)
-                u.log_info(result)
+                u.log_warning(result)
                 return result
             if self.isUnconfirmed(member):
                 result = f"Пользователь {member.display_name} проверки прошёл успешно, очищаем роль Неподтверждённые"
-                u.log_info(result)
+                u.log_warning(result)
                 await member.remove_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
                 await asyncio.sleep(1)
                 return result
