@@ -36,6 +36,8 @@ async def uclear(ctx: commands.Context):
     for p in ctx.guild.members:
         if gld.isUnconfirmed(p):
             await p.remove_roles(get(p.guild.roles, id=gld.dc_roles['UNCONFIRM_ROLE'].id))
+            u.log_info(f"Очищен участник: {p.display_name}")
+            await asyncio.sleep(5)
 
 
 

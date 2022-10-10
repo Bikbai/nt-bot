@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from enum import Enum
 import datetime
@@ -165,8 +166,8 @@ class GGuild:
     async def validate_member(self, member: discord.Member, writeMode : bool = False):
         # разбираем ник дискорда
         m = u.parse_name(member.display_name)
-        # если бот - сразу выходим
         try:
+            # если бот - сразу выходим
             if self.isBot(member):
                 result = f"Пользователь {member.display_name} - бот, проверки не требуются"
                 u.log_info(result)
@@ -179,6 +180,7 @@ class GGuild:
             if self.isPlayer(member) and not m["valid"]:
                 if writeMode:
                     await member.add_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
+                    await asyncio.sleep(1)
                 result = f"Формат имени пользователя {member.display_name} некорректный, выставлена роль Неподтверждённые!"
                 u.log_info(result)
                 return result
@@ -187,6 +189,7 @@ class GGuild:
                 result = f"Пользователь {member.display_name} не найден в гильдии, выставлена роль Неподтверждённые"
                 if writeMode:
                     await member.add_roles(get(member.guild.roles, id=self.dc_roles['UNCONFIRM_ROLE'].id))
+                    await asyncio.sleep(1)
                 u.log_info(result)
                 return result
             return f"{member.display_name}: все проверки проведены - ошибок нет"
@@ -209,6 +212,7 @@ class GGuild:
                 code = 1
                 msg = "Роль продлена"
             await member.add_roles(get(member.guild.roles, id=role.id))
+            await asyncio.sleep(1)
             return code, msg
         except Exception as e:
             return -1, str(e)
@@ -235,12 +239,14 @@ class GGuild:
         if interactive: await self.dm(author, msg)
         if iTr.endDate < time.time():
             await member.remove_roles(get(member.guild.roles, id=role.id))
+            await asyncio.sleep(1)
             self.trStorage.removeByTimeRole(iTr)
             # если выставлена подменяющая роль - выставляем
             if iTr.nextRoleId is None:
                 pass
             else:
                 await member.add_roles(get(member.guild.roles, id=iTr.nextRoleId))
+                await asyncio.sleep(1)
                 u.log_info(f"Добавлена роль {get(member.guild.roles, id=iTr.nextRoleId).name}")
             msg = f"Временная роль очищена у пользователя {member.display_name}"
             u.log_info(msg)
@@ -279,11 +285,13 @@ class GGuild:
         # чистим
         iTr = self.trStorage.testTR(TimeRole(member.id, role.id, 0, member.display_name), False)
         await member.remove_roles(get(member.guild.roles, id=role.id))
+        await asyncio.sleep(1)
         self.trStorage.removeByTimeRole(iTr)
         u.log_info(f"Временная роль очищена у пользователя {member.display_name}")
         return True, err
 
     async def check_guild(self):
+        self.fill_guildlist()
         g: discord.Guild
         for g in self.bot.guilds:
             t = time.time_ns()
