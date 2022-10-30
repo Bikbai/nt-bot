@@ -98,10 +98,17 @@ class TimeRoles:
 
 class GGuild:
     __guild_list = dict()
-    bot: commands.Bot = commands.Bot
+    bot: discord.Client
     trStorage: TimeRoles
     dc_roles: dict[str, discord.Role] = dict()
     rights: dict[str, List[discord.Role]] = dict()
+
+    def __init__(self, client):
+        self.bot = client
+        self.trStorage = TimeRoles()
+        self.fill_guildlist()
+        self.__init_roles()
+        self.__init_rights__()
 
     def check_rights(self, member: discord.Member) -> bool:
         command = i.stack()[1][3]
@@ -144,24 +151,8 @@ class GGuild:
                                     self.rights[str(cmd)].append(r)
             return
 
-    def __init__(self, bot):
-        self.bot = bot
-        self.trStorage = TimeRoles()
-        self.fill_guildlist()
-        self.__init_roles()
-        self.__init_rights__()
 
-    def __init_roles(self):
-        for a in RolesEnum:
-            dcGuild: discord.Guild
-            for dcGuild in self.bot.guilds:
-                role = discord.utils.get(dcGuild.roles, name=a.value)
-                if role is None:
-                    err = f"Сервер: {dcGuild.name}, не найдена роль {a.value}"
-                    u.log_critical(err)
-                    raise Exception(err)
-                self.dc_roles[str(a.name)] = role
-        return True
+
 
     async def validate_member(self, member: discord.Member, writeMode : bool = False):
         # разбираем ник дискорда
@@ -340,6 +331,7 @@ class GGuild:
         if get(member.roles, id=self.dc_roles["PLAYER_ROLE"].id) is None:
             return False
         return True
+
     def isUnconfirmed(self, member: discord.Member):
         if get(member.roles, id=self.dc_roles["UNCONFIRM_ROLE"].id) is None:
             return False

@@ -12,53 +12,66 @@ from discord.ext import commands
 from colorama import init
 import asyncio
 import guild as g
+from src.client import MyClient
+from src.gui import DropdownView, Feedback
+from discord import app_commands
+
+init()
 
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
+client = MyClient(intents=intents)
+
 #show_version()
 u.log_info(f"Starting using token: {c.BOT_TOKEN}")
 
-bot = commands.Bot(intents=intents, command_prefix="rp$")
-
-init()
-
-gld: g.GGuild
+gld: g.GGuild(client=client)
 tread_count = 0
 
 
-@bot.command(pass_context=True)
-async def uclear(ctx: commands.Context):
-    if not gld.check_rights(ctx.author):
-        await ctx.author.send(f'У вас нет доступа к этой команде')
+@client.tree.command()
+async def hello(interaction: discord.Interaction):
+    """Says hello!"""
+    await interaction.response.send_message(f'Hi, {interaction.user.mention}')
+
+
+@client.tree.command()
+async def test(interaction: discord.Interaction):
+    await interaction.response.send_modal(Feedback())
+
+
+@client.tree.command()
+async def uclear(interaction: discord.Interaction):
+    if not gld.check_rights(interaction.user):
+        await interaction.response.send_message(f'У вас нет доступа к этой команде')
         return
-    for p in ctx.guild.members:
+    for p in interaction.guild.members:
         if gld.isUnconfirmed(p):
             await p.remove_roles(get(p.guild.roles, id=gld.dc_roles['UNCONFIRM_ROLE'].id))
             u.log_info(f"Очищен участник: {p.display_name}")
             await asyncio.sleep(5)
 
 
-
-@bot.command(pass_context=True)
-async def newbie(ctx: commands.Context, member: discord.Member):
-    if not gld.check_rights(ctx.author):
-        await ctx.author.send(f'У вас нет доступа к этой команде')
+@client.tree.command()
+async def newbie(interaction: discord.Interaction, member: discord.Member):
+    if not gld.check_rights(interaction.user):
+        await interaction.response.author.send(f'У вас нет доступа к этой команде')
         return
     if not gld.isPlayer(member):
-        await ctx.author.send(f"Указанный персонаж должен иметь роль 'Участник'")
+        await interaction.response.author.send(f"Указанный персонаж должен иметь роль 'Участник'")
         return
     if gld.isOfficier(member):
-        await ctx.author.send(f"Офицеру, серьезно?!")
+        await interaction.response.author.send(f"Офицеру, серьезно?!")
         return
     endDate = time.time() + 30 * 24 * 3600
     await gld.add_timed_role(member, gld.dc_roles["NEWBIE_ROLE"], endDate, gld.dc_roles["TRIAL_ROLE"])
-    await ctx.author.send(
+    await interaction.response.author.send(
         f'Мемберу {member.display_name} добавлена роль {gld.dc_roles["NEWBIE_ROLE"].name} сроком до {datetime.fromtimestamp(endDate)}')
 
 
-@bot.command(pass_context=True)
+@client.tree.command()
 async def timerole(ctx: commands.Context, subcommand: str, member: discord.Member, role: typing.Optional[discord.Role],
                    ed: typing.Optional[str]):
     if not gld.check_rights(ctx.author):
@@ -105,7 +118,7 @@ async def timerole(ctx: commands.Context, subcommand: str, member: discord.Membe
 
 
 # команда проверки персонажей, или всей гильды
-@bot.command(pass_context=True)
+@client.tree.command()
 async def check(ctx: commands.Context, mode: str = 'v', member: typing.Optional[discord.Member] = None):
     gld.fill_guildlist()
     writeMode = False
@@ -136,7 +149,7 @@ async def check(ctx: commands.Context, mode: str = 'v', member: typing.Optional[
             await ctx.author.send(r)
 
 
-@bot.event
+@client.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
         u.log_info(error)
@@ -145,28 +158,27 @@ async def on_command_error(ctx, error):
     return
 
 
-@bot.event
+@client.event
 async def on_ready():
-    global tread_count
-    tread_count = tread_count + 1
     global gld
-    gld = g.GGuild(bot)
-    u.log_info(f"Logged in as {bot.user.name}, thread {tread_count}")
+    gld = g.GGuild(client=client)
+    u.log_info(f"Logged in as {client.user.display_name}")
 
     while True:
-        u.log_info(f'Запуск потока проверки, thread: {tread_count}')
+        u.log_info(f'Запуск проверки')
         await gld.check_guild()
         u.log_info(f"Следующая проверка в: {datetime.fromtimestamp(time.time() + c.SLEEP_DELAY)}")
         await asyncio.sleep(c.SLEEP_DELAY)
 
 
-@bot.event
+
+@client.event
 async def on_member_join(member):
     u.log_info("Member join event: {}".format(member.display_name))
     await gld.validate_member(member)
 
 
 try:
-    bot.run(c.BOT_TOKEN)
+    client.run(c.BOT_TOKEN)
 except Exception as e:
     u.log_critical(str(e))
